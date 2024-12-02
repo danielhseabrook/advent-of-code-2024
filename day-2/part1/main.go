@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -30,9 +31,12 @@ func main() {
 			level, _ := strconv.Atoi(s)
 			report = append(report, level)
 		}
-		for i := 1; i < len(report); i++ {
-			if report[i] > report[i-1] || report[i-1] < report[i] {
-				if report[i] > report[i-1]+3 || report[i] == report[i-1] {
+		revReport := make([]int, len(report))
+		copy(revReport, report)
+		slices.Reverse(revReport)
+		if slices.IsSorted(report) || slices.IsSorted(revReport) {
+			for i := 1; i < len(report); i++ {
+				if report[i] > report[i-1]+3 || revReport[i] > revReport[i-1]+3 || report[i] == report[i-1] {
 					safeReports[reportN] = false
 					break
 				} else {
