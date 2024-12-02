@@ -11,10 +11,9 @@ import (
 )
 
 var (
-	listA               []int
-	listB               []int
-	listDifference      int
-	listDifferenceTotal int
+	listA           []int
+	listB           []int
+	similarityScore int
 )
 
 func main() {
@@ -33,8 +32,6 @@ func main() {
 			log.Fatal(err)
 		}
 		valB, err := strconv.Atoi(sepLists[1])
-		// fmt.Print("valB = ", valB, "\n")
-		// fmt.Print("valA = ", valA, "\n")
 		listA = append(listA, valA)
 		listB = append(listB, valB)
 
@@ -42,16 +39,17 @@ func main() {
 	sort.Ints(listA)
 	sort.Ints(listB)
 
-	for i := 0; i < len(listA); i++ {
-		listDifference = listA[i] - listB[i]
-		if listDifference < 0 {
-			listDifference = listDifference * -1
+	locationMap := make(map[int]int)
+	for _, num := range listB {
+		locationMap[num]++
+	}
+
+	for location, occurrence := range locationMap {
+		for i := 0; i < len(listA); i++ {
+			if listA[i] == location {
+				similarityScore += (location * occurrence)
+			}
 		}
-		listDifferenceTotal += listDifference
-		fmt.Print(i, ". ", listA[i], "+", listB[i], "=", listA[i]-listB[i], "\n")
 	}
-	fmt.Print("listDifference = ", listDifferenceTotal, "\n")
-	if err := line.Err(); err != nil {
-		log.Fatal(err)
-	}
+	fmt.Print(similarityScore)
 }
