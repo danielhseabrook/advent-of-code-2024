@@ -5,22 +5,72 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 )
 
 var safeReports int
 
-func reportTest(report []int, revReport []int, reportN int, safeReports map[int]bool) {
+const (
+	toleranceCap int = 1
+	max          int = 3
+)
+
+func isRepeat(report []int, reportN int, tolerance *int) bool {
 	for i := 1; i < len(report); i++ {
-		if report[i] > report[i-1]+3 || revReport[i] > revReport[i-1]+3 || report[i] == report[i-1] {
-			safeReports[reportN] = false
-			break
-		} else {
-			safeReports[reportN] = true
+		if report[i] == report[i-1] {
+			*tolerance++
+			//			fmt.Printf("Repeat found at index %d: report=%d\n", i, reportN)
+			if *tolerance > toleranceCap {
+				return false
+			}
 		}
 	}
+	return false
+}
+
+func withinMax(report []int, max int, reportN int, tolerance *int) bool {
+	for i := 1; i < len(report); i++ {
+		if report[i] > report[i-1]+max || report[i] < report[i-1]-max {
+			*tolerance++
+			//			fmt.Printf("Max breach found at index %d and %d: report=%d\n", i, i-1, reportN)
+			if *tolerance > toleranceCap {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func isOrdered(report []int, reportN int, tolerance *int) bool {
+	ascending := true
+	descending := true
+
+	for i := 1; i < len(report); i++ {
+		if report[i] < report[i-1] {
+			ascending = false
+		}
+		if report[i] > report[i-1] {
+			descending = false
+		}
+	}
+
+	if !ascending && !descending {
+		*tolerance++
+		//		fmt.Printf("Report %d is not ordered\n", reportN)
+
+		if *tolerance > toleranceCap {
+			return false
+		}
+	}
+	return true
+}
+
+func reportTest(report []int, reportN int, tolerance *int) bool {
+	if withinMax(report, max, reportN, tolerance) && !isRepeat(report, reportN, tolerance) && isOrdered(report, reportN, tolerance) {
+		return true
+	}
+	return false
 }
 
 func main() {
@@ -33,8 +83,10 @@ func main() {
 	line := bufio.NewScanner(file)
 
 	safeReports := make(map[int]bool)
+	noToleranceSafe := make(map[int]bool)
 	reportN := 0
 	for line.Scan() {
+		tolerance := 0
 		reportN++
 		reportString := strings.Split(line.Text(), " ")
 		report := []int{}
@@ -42,18 +94,25 @@ func main() {
 			level, _ := strconv.Atoi(s)
 			report = append(report, level)
 		}
-		revReport := make([]int, len(report))
-		copy(revReport, report)
-		slices.Reverse(revReport)
-		if slices.IsSorted(report) || slices.IsSorted(revReport) {
-			reportTest(report, revReport, reportN, safeReports)
-		}
-	} // report test
-	safeN := 0
-	for _, v := range safeReports {
-		if v {
-			safeN++
+		noToleranceSafe[reportN] = reportTest(report, reportN, &tolerance)
+		reportTest(report, reportN, &tolerance)
+		if tolerance <= toleranceCap {
+			fmt.Printf("Report %d is apparrently safe with tolerance %d\n", reportN, tolerance)
+			safeReports[reportN] = true
 		}
 	}
-	fmt.Println(safeN)
-} // main
+	toleranceSafeN := 0
+	for _, v := range noToleranceSafe {
+		if v {
+			toleranceSafeN++
+		}
+	}
+	noToleranceSafeN := 0
+	for _, v := range safeReports {
+		if v {
+			noToleranceSafeN++
+		}
+	}
+	fmt.Println("No Tolerance: ", noToleranceSafeN)
+	fmt.Println("Tolerance: ", toleranceSafeN)
+}
