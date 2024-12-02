@@ -11,38 +11,53 @@ import (
 
 var safeReports int
 
-const (
-	toleranceCap int = 1
-	max          int = 3
-)
+const max = 3
 
-func isRepeat(report []int, reportN int, tolerance *int) bool {
+func reportTest(report []int, reportN int) bool {
+	if withinMax(report, max, reportN) && !isRepeat(report, reportN) && isOrdered(report, reportN) {
+		fmt.Print(withinMax(report, max, reportN), !isRepeat(report, reportN), isOrdered(report, reportN), "\n")
+		return true
+	} else {
+		return troubleShoot(report, reportN)
+	}
+}
+
+func troubleShoot(report []int, reportN int) bool {
+	for {
+		safe := false
+		for i := 0; i < len(report); i++ {
+			holdingReport := make([]int, len(report))
+			copy(holdingReport, report)
+			holdingReport = append(holdingReport[:i], holdingReport[i+1:]...)
+
+			if withinMax(holdingReport, max, reportN) && !isRepeat(holdingReport, reportN) && isOrdered(holdingReport, reportN) {
+				safe = true
+				return safe
+			}
+		}
+		return false
+	}
+}
+
+func isRepeat(report []int, reportN int) bool {
 	for i := 1; i < len(report); i++ {
 		if report[i] == report[i-1] {
-			*tolerance++
-			//			fmt.Printf("Repeat found at index %d: report=%d\n", i, reportN)
-			if *tolerance > toleranceCap {
-				return false
-			}
+			return true
 		}
 	}
 	return false
 }
 
-func withinMax(report []int, max int, reportN int, tolerance *int) bool {
+func withinMax(report []int, max int, reportN int) bool {
 	for i := 1; i < len(report); i++ {
 		if report[i] > report[i-1]+max || report[i] < report[i-1]-max {
-			*tolerance++
-			//			fmt.Printf("Max breach found at index %d and %d: report=%d\n", i, i-1, reportN)
-			if *tolerance > toleranceCap {
-				return false
-			}
+			return false
 		}
 	}
 	return true
 }
 
-func isOrdered(report []int, reportN int, tolerance *int) bool {
+func isOrdered(report []int, reportN int) bool {
 	ascending := true
 	descending := true
 
@@ -56,21 +71,10 @@ func isOrdered(report []int, reportN int, tolerance *int) bool {
 	}
 
 	if !ascending && !descending {
-		*tolerance++
-		//		fmt.Printf("Report %d is not ordered\n", reportN)
-
-		if *tolerance > toleranceCap {
-			return false
-		}
+		// fmt.Printf("Report %d is not ordered\n", reportN)
+		return false
 	}
 	return true
-}
-
-func reportTest(report []int, reportN int, tolerance *int) bool {
-	if withinMax(report, max, reportN, tolerance) && !isRepeat(report, reportN, tolerance) && isOrdered(report, reportN, tolerance) {
-		return true
-	}
-	return false
 }
 
 func main() {
@@ -83,10 +87,8 @@ func main() {
 	line := bufio.NewScanner(file)
 
 	safeReports := make(map[int]bool)
-	noToleranceSafe := make(map[int]bool)
 	reportN := 0
 	for line.Scan() {
-		tolerance := 0
 		reportN++
 		reportString := strings.Split(line.Text(), " ")
 		report := []int{}
@@ -94,25 +96,14 @@ func main() {
 			level, _ := strconv.Atoi(s)
 			report = append(report, level)
 		}
-		noToleranceSafe[reportN] = reportTest(report, reportN, &tolerance)
-		reportTest(report, reportN, &tolerance)
-		if tolerance <= toleranceCap {
-			fmt.Printf("Report %d is apparrently safe with tolerance %d\n", reportN, tolerance)
-			safeReports[reportN] = true
-		}
+		safeReports[reportN] = reportTest(report, reportN)
 	}
-	toleranceSafeN := 0
-	for _, v := range noToleranceSafe {
-		if v {
-			toleranceSafeN++
-		}
-	}
-	noToleranceSafeN := 0
+	fmt.Print(safeReports)
+	safeN := 0
 	for _, v := range safeReports {
 		if v {
-			noToleranceSafeN++
+			safeN++
 		}
 	}
-	fmt.Println("No Tolerance: ", noToleranceSafeN)
-	fmt.Println("Tolerance: ", toleranceSafeN)
+	fmt.Println("\n", "\n", "\n", "\n", "\n", "\n", "\n", "\n", safeN)
 }
